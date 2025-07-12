@@ -2,33 +2,32 @@ package flashcards.infrastructure.incoming
 
 import flashcards.application.service.FlashcardService
 import flashcards.domain.model.Flashcard
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/flashcards")
-class FlashcardController(private val service: FlashcardService) {
+class FlashcardController(
+    private val flashcardService: FlashcardService
+) {
 
     @PostMapping
-    fun create(@RequestBody flashcard: Flashcard): Mono<Flashcard> =
-        service.create(flashcard)
+    suspend fun create(@RequestBody flashcard: Flashcard): Flashcard =
+        flashcardService.create(flashcard)
 
     @GetMapping
-    fun getAll(): Flux<Flashcard> =
-        service.findAll()
+    suspend fun getAll(): List<Flashcard> =
+        flashcardService.findAll()
 
     @GetMapping("/{id}")
-    fun getById(@PathVariable id: String): Mono<Flashcard> =
-        service.findById(id)
+    suspend fun getById(@PathVariable id: String): Flashcard =
+        flashcardService.findById(id)
+            ?: throw NoSuchElementException("Flashcard not found with id=$id")
+
+    @PatchMapping("/{id}")
+    suspend fun update(@RequestBody flashcard: Flashcard): Flashcard =
+        flashcardService.update(flashcard)
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: String): Mono<Void> =
-        service.deleteById(id)
+    suspend fun delete(@PathVariable id: String) =
+        flashcardService.deleteById(id)
 }

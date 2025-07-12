@@ -1,6 +1,7 @@
 package flashcards.infrastructure.outgoing.mongo
 
 import flashcards.domain.model.Flashcard
+import kotlinx.coroutines.flow.toList
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -10,15 +11,23 @@ class MongoFlashcardRepositoryAdapter(
     private val springRepository: SpringFlashcardRepository
 ) {
 
-    fun save(flashcard: Flashcard): Mono<Flashcard> =
-        springRepository.save(flashcard)
+    suspend fun save(flashcard: Flashcard): Flashcard {
+        return springRepository.save(flashcard)
+    }
 
-    fun findAll(): Flux<Flashcard> =
-        springRepository.findAll()
+    suspend fun findAll(): List<Flashcard> {
+        return springRepository.findAll().toList()
+    }
 
-    fun findById(id: String): Mono<Flashcard> =
-        springRepository.findById(id)
+    suspend fun findById(id: String): Flashcard? {
+        return springRepository.findById(id)
+    }
 
-    fun deleteById(id: String): Mono<Void> =
-        springRepository.deleteById(id)
+    suspend fun update(flashcard: Flashcard): Flashcard {
+        return springRepository.save(flashcard)
+    }
+
+    suspend fun deleteById(id: String) {
+        return springRepository.deleteById(id)
+    }
 }

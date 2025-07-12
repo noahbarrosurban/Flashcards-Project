@@ -3,21 +3,24 @@ package flashcards.application.service
 import flashcards.domain.model.Flashcard
 import flashcards.infrastructure.outgoing.mongo.MongoFlashcardRepositoryAdapter
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Service
-class FlashcardService(private val repository: MongoFlashcardRepositoryAdapter) {
+class FlashcardService(
+    private val flashcardRepository: MongoFlashcardRepositoryAdapter
+) {
 
-    fun create(flashcard: Flashcard): Mono<Flashcard> =
-        repository.save(flashcard)
+    suspend fun create(flashcard: Flashcard): Flashcard =
+        flashcardRepository.save(flashcard)
 
-    fun findAll(): Flux<Flashcard> =
-        repository.findAll()
+    suspend fun findAll(): List<Flashcard> =
+        flashcardRepository.findAll()
 
-    fun findById(id: String): Mono<Flashcard> =
-        repository.findById(id)
+    suspend fun findById(id: String): Flashcard? =
+        flashcardRepository.findById(id)
 
-    fun deleteById(id: String): Mono<Void> =
-        repository.deleteById(id)
+    suspend fun update(flashcard: Flashcard): Flashcard =
+        flashcardRepository.update(flashcard)
+
+    suspend fun deleteById(id: String) =
+        flashcardRepository.deleteById(id)
 }
