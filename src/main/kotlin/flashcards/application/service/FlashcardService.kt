@@ -1,12 +1,14 @@
 package flashcards.application.service
 
 import flashcards.domain.model.Flashcard
+import flashcards.infrastructure.outgoing.ai.GeminiClient
 import flashcards.infrastructure.outgoing.mongo.MongoFlashcardRepositoryAdapter
 import org.springframework.stereotype.Service
 
 @Service
 class FlashcardService(
-    private val flashcardRepository: MongoFlashcardRepositoryAdapter
+    private val flashcardRepository: MongoFlashcardRepositoryAdapter,
+    private val geminiClient: GeminiClient
 ) {
 
     suspend fun create(flashcard: Flashcard): Flashcard =
@@ -23,4 +25,15 @@ class FlashcardService(
 
     suspend fun deleteById(id: String) =
         flashcardRepository.deleteById(id)
+
+    suspend fun generate(topic: String): Flashcard {
+        val response = geminiClient.generate(topic)
+
+        return create(
+            Flashcard(
+                question = "Pergunta gerada por IA: $topic",
+                answer = response
+            )
+        )
+    }
 }

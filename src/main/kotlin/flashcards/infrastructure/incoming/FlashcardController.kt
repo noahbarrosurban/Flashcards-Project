@@ -30,4 +30,8 @@ class FlashcardController(
     @DeleteMapping("/{id}")
     suspend fun delete(@PathVariable id: String) =
         flashcardService.deleteById(id)
+
+    @PostMapping("/generate")
+    suspend fun generate(@RequestParam topic : String): Flashcard =
+        flashcardService.generate(topic)
 }
