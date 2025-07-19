@@ -31,7 +31,7 @@ class FlashcardService(
 
         return create(
             Flashcard(
-                question = "Pergunta gerada por IA: $topic",
+                question = topic,
                 answer = response
             )
         )
