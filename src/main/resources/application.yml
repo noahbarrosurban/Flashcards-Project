@@ -2,7 +2,7 @@ spring:
   data:
     mongodb:
       database: flashcards
-      uri: mongodb://localhost:27017/flashcards
+      uri: ${MONGODB_URI}
 
 gemini:
   api:
