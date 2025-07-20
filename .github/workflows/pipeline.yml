@@ -1,0 +1,76 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Build application (without tests)
+        run: ./gradlew build -x test
+
+      - name: Upload JAR as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs/*.jar
+
+  deploy:
+    name: Deploy to Cloud Run
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: ${{ secrets.GCP_REGION }}
+      SERVICE: ${{ secrets.GCP_SERVICE_NAME }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs
+
+      - name: Set up Docker auth for Artifact Registry
+        run: |
+          echo "${{ secrets.GCP_CREDENTIALS }}" > key.json
+          gcloud auth activate-service-account --key-file=key.json
+          gcloud config set project $PROJECT_ID
+          gcloud auth configure-docker $REGION-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/docker-repo/$SERVICE:latest .
+
+      - name: Push image to Artifact Registry
+        run: |
+          docker push $REGION-docker.pkg.dev/$PROJECT_ID/docker-repo/$SERVICE:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE \
+            --image $REGION-docker.pkg.dev/$PROJECT_ID/docker-repo/$SERVICE:latest \
+            --region $REGION \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars MONGODB_URI=${{ secrets.MONGODB_URI }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
