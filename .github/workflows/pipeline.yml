@@ -9,6 +9,17 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,7 +30,17 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: Wait for MongoDB
+        run: |
+          while ! nc -z localhost 27017; do
+            sleep 1
+          done
+
       - name: Run tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          MONGODB_URI: mongodb://localhost:27017/flashcards-test
+          GEMINI_API_KEY: test-key
         run: ./gradlew test
 
       - name: Build application (without tests)
@@ -51,11 +72,16 @@ jobs:
           name: app-jar
           path: build/libs
 
-      - name: Set up Docker auth for Artifact Registry
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth for Artifact Registry
         run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" > key.json
-          gcloud auth activate-service-account --key-file=key.json
-          gcloud config set project $PROJECT_ID
           gcloud auth configure-docker $REGION-docker.pkg.dev
 
       - name: Build Docker image
@@ -68,9 +94,9 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy $SERVICE \
-            --image $REGION-docker.pkg.dev/$PROJECT_ID/docker-repo/$SERVICE:latest \
-            --region $REGION \
+          gcloud run deploy "$SERVICE" \
+            --image "$REGION-docker.pkg.dev/$PROJECT_ID/docker-repo/$SERVICE:latest" \
+            --region "$REGION" \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars MONGODB_URI=${{ secrets.MONGODB_URI }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            --set-env-vars "MONGODB_URI=${{ secrets.MONGODB_URI }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"
