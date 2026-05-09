@@ -32,7 +32,7 @@ class GeminiClient (
             )
         )
 
-        val model = "gemini-1.5-flash"
+        val model = "gemini-2.5-flash"
 
         val response = client.post()
             .uri("/$model:generateContent?key=$apiKey")
